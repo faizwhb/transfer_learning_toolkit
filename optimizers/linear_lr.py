@@ -1,3 +1,7 @@
+# The Linear Schedule is taken from: https://github.com/mtli/linearlr
+# as studied and presented in: `Budgeted Training: Rethinking Deep Neural Network Training Under Resource
+#      Constraints`_.
+
 from torch.optim.lr_scheduler import _LRScheduler
 
 
