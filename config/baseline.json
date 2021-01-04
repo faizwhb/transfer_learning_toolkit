@@ -1,0 +1,52 @@
+{
+  "dataset_selected": "deep_image_blendings",
+  "loss_selected": "softmax",
+  "model_name": "mobilenet",
+  "resume": false,
+  "dataset": {
+    "deep_image_blendings": {
+      "root": "/media/faiz/data2/object_detection/VOCdevkit/image_blending",
+      "train_csv": "/media/faiz/data2/object_detection/VOCdevkit/image_blending/lists/laplacian.csv",
+      "val_csv": "/media/faiz/data2/object_detection/VOCdevkit/image_blending/lists/real_val.csv",
+      "classes": {
+        "train": "range(0, 198)",
+        "val": "range(0, 198)"
+      }
+    }
+  },
+  "transform_parameters": {
+    "intensity_scale": [[0, 255], [0,1]],
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "sz_resize": 224,
+    "sz_crop": 224
+  },
+  "nb_epochs": 60,
+  "sz_batch": 96,
+  "gpu_id": 0,
+  "nb_val_epochs": 1,
+  "log": {
+    "path":"log/classification/",
+    "name":  "experiment-0-laplacian"
+  },
+  "verbose": false,
+  "criterion": {
+    "CrossEntropy": {}
+  },
+  "optimizer_params": {
+    "base_lr": 0.0001,
+    "new_params": 0.01,
+    "eps": 0.01,
+    "weight_decay": 1e-04,
+    "lr_schedule": 0.1,
+    "scheduler_freq": 20
+  }
+}

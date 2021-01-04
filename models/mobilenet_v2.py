@@ -20,15 +20,16 @@ class TransferredNetworkD(torch.nn.Module):
         self.classification_layer = torch.nn.Linear(in_features=pre_trained_model.classifier.in_features,
                                                      out_features=num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
+
+
     def forward(self, x):
         x = self.pretrained_model.features(x)
         x = F.relu(x, inplace=True)
         pooled_features = F.adaptive_avg_pool2d(x, (1, 1)).view(x.size(0), -1)
-        # x = x.mean([2, 3])
-        # x = x.view(-1,)
         x = self.classification_layer(pooled_features)
         x = self.softmax(x)
         return pooled_features, x
+
 
 class TransferredNetworkM(torch.nn.Module):
     def __init__(self,pre_trained_model, num_classes):
@@ -47,13 +48,13 @@ class TransferredNetworkM(torch.nn.Module):
 
 def make(model_name, num_classes):
 
-    if model_name=='densenet':
+    if model_name == 'densenet':
         model = densenet(pretrained=True)
         model = TransferredNetworkD(pre_trained_model=model,
                                     num_classes=num_classes
                                     )
         return model
-    elif model_name=='mobilenet':
+    elif model_name == 'mobilenet':
         model = mobilenet_v2(pretrained=True)
         model = TransferredNetworkM(pre_trained_model=model,
                                     num_classes=num_classes
