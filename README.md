@@ -1,1 +1,1 @@
-# transfer_learning_toolkit
+# Transfer Learning Toolkit for Large Scale Image Classification
