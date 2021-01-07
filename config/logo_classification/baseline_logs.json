@@ -1,17 +1,13 @@
 {
   "dataset_selected": "logo_classification",
   "loss_selected": "softmax",
-  "model_name": "mobilenet",
+  "model_name": "densenet",
   "resume": false,
   "dataset": {
     "deep_image_blendings": {
-      "root": "/media/faiz/data2/object_detection/VOCdevkit/image_blending",
-      "train_csv": "/media/faiz/data2/object_detection/VOCdevkit/image_blending/lists/laplacian.csv",
-      "val_csv": "/media/faiz/data2/object_detection/VOCdevkit/image_blending/lists/real_val.csv",
-      "classes": {
-        "train": "range(0, 198)",
-        "val": "range(0, 198)"
-      }
+      "root": "/media/faiz/data2/classification/logos/images",
+      "train_csv": "/media/faiz/data2/classification/logos/images/annotations/train.csv",
+      "val_csv": "/media/faiz/data2/classification/logos/images/annotations/test.csv"
     }
   },
   "transform_parameters": {
@@ -34,7 +30,7 @@
   "gpu_id": 0,
   "nb_val_epochs": 1,
   "log": {
-    "path":"log/classification/",
+    "path":"logs/classification/",
     "name":  "experiment-0-baseline"
   },
   "optimizer_params": {

@@ -16,5 +16,5 @@
     - [ ] Budget Training
 
 - Datasets
-    - [ ] Logo Classification
+    - [x] Logo Classification
     - [ ] Flowers Classification

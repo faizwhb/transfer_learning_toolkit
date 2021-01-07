@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 
-import torchvision
 from torchvision import transforms
 import PIL.Image
 import torch
@@ -17,7 +16,8 @@ def mean_per_channel(images):
     return images.view(3, -1).mean(dim = 1)
 
 
-class Identity(): # used for skipping transforms
+class Identity():
+    # used for skipping transforms
     def __call__(self, im):
         return im
 
@@ -52,8 +52,8 @@ class ScaleIntensities():
         return tensor
 
 
-def make_transform(sz_resize = 227, sz_crop = 227, mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225], rgb_to_bgr = False, is_train = True,
+def make_transform(sz_resize = 227, sz_crop=224, mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225], rgb_to_bgr=False, is_train=True,
         intensity_scale = None):
     return transforms.Compose([
         RGBToBGR() if rgb_to_bgr else Identity(),

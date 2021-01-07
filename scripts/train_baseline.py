@@ -1,11 +1,10 @@
 import argparse
-from models import model_getter
-from torch.nn import CrossEntropyLoss, BCELoss
+from tools.models import model_getter
 
 import torch
 import config_utils.config_eval as config_eval
-from datasets.transformers import make_transform
-from datasets.csv_dataset import Dataset_from_CSV
+from tools.datasets.transformers import make_transform
+from tools.datasets.csv_dataset import Dataset_from_CSV
 from torch.utils.tensorboard import SummaryWriter
 import os
 import logging
