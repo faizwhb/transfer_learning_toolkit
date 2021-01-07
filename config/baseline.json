@@ -1,5 +1,5 @@
 {
-  "dataset_selected": "deep_image_blendings",
+  "dataset_selected": "logo_classification",
   "loss_selected": "softmax",
   "model_name": "mobilenet",
   "resume": false,
@@ -35,18 +35,11 @@
   "nb_val_epochs": 1,
   "log": {
     "path":"log/classification/",
-    "name":  "experiment-0-laplacian"
-  },
-  "verbose": false,
-  "criterion": {
-    "CrossEntropy": {}
+    "name":  "experiment-0-baseline"
   },
   "optimizer_params": {
     "base_lr": 0.0001,
     "new_params": 0.01,
-    "eps": 0.01,
-    "weight_decay": 1e-04,
-    "lr_schedule": 0.1,
-    "scheduler_freq": 20
+    "eps": 0.01
   }
 }

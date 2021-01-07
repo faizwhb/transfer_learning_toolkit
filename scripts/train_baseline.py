@@ -99,7 +99,6 @@ def main(args):
             logging.StreamHandler()
         ]
     )
-    logging.info('Something is going on!!')
 
     train_transforms = make_transform(**config['transform_parameters'],
                                       is_train=True)
