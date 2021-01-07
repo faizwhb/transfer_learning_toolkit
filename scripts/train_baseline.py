@@ -86,6 +86,7 @@ def main(args):
     if not os.path.isdir(experiment_name):
         os.makedirs(experiment_name)
 
+    # TODO - Cleanup this mess to see clearly
     logging.basicConfig(
         format="%(asctime)s %(message)s",
         level=logging.DEBUG if config['verbose'] else logging.INFO,
