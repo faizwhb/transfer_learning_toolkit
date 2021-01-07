@@ -17,11 +17,6 @@ def densenet(pretrained=True):
     model = torchvision.models.densenet161(pretrained=pretrained)
     return model
 
-def resnet(pretrained=True):
-    # get mobilenet_v2 from torchvision models
-    model = torchvision.models.resnet101(pretrained=pretrained)
-    return model
-
 class TransferredNetworkD(torch.nn.Module):
     def __init__(self, pre_trained_model, num_classes):
         super(TransferredNetworkD, self).__init__()
@@ -51,25 +46,13 @@ class TransferredNetworkM(torch.nn.Module):
         self.classification_layer = torch.nn.Linear(in_features=pre_trained_model.classifier[1].in_features,
                                                      out_features=num_classes)
         self.softmax = nn.LogSoftmax(dim=1)
+
     def forward(self, x):
         x = self.pretrained_model.features(x)
         pooled_features = x.mean([2, 3])
         x = self.classification_layer(pooled_features)
         x = self.softmax(x)
         return pooled_features, x
-
-class TransferredNetworkR(torch.nn.Module):
-    def __init__(self, pre_trained_model, num_classes):
-        super(TransferredNetworkR, self).__init__()
-        self.pretrained_model = pre_trained_model
-
-        self.pretrained_model.fc = torch.nn.Linear(in_features=pre_trained_model.fc.in_features,
-                                                   out_features=num_classes)
-        self.softmax = nn.LogSoftmax(dim=1)
-    def forward(self, x):
-        x = self.pretrained_model(x)
-        x = self.softmax(x)
-        return x
 
 def make(model_name, num_classes):
 
