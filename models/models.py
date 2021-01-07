@@ -1,10 +1,6 @@
 import torchvision
 import torch
 import torch.nn.functional as F
-import torch.nn as nn
-import random
-import logging
-
 
 def mobilenet_v2(pretrained=True):
     # get mobilenet_v2 from torchvision models
@@ -24,7 +20,6 @@ class TransferredNetworkD(torch.nn.Module):
 
         self.classification_layer = torch.nn.Linear(in_features=pre_trained_model.classifier.in_features,
                                                      out_features=num_classes)
-        self.softmax = nn.LogSoftmax(dim=1)
 
 
     def forward(self, x):
@@ -33,7 +28,6 @@ class TransferredNetworkD(torch.nn.Module):
         x = F.relu(x, inplace=True)
         pooled_features = F.adaptive_avg_pool2d(x, (1, 1)).view(x.size(0), -1)
         x = self.classification_layer(pooled_features)
-        x = self.softmax(x)
         # to extract the embedding to visualize the tsne on for classes
         return pooled_features, x
 
@@ -43,15 +37,14 @@ class TransferredNetworkM(torch.nn.Module):
         super(TransferredNetworkM, self).__init__()
         self.pretrained_model = pre_trained_model
 
+        # just a linear linear is enough since nn.CrossEntropy combines Softmax and NLLLoss for efficiency
         self.classification_layer = torch.nn.Linear(in_features=pre_trained_model.classifier[1].in_features,
                                                      out_features=num_classes)
-        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         x = self.pretrained_model.features(x)
         pooled_features = x.mean([2, 3])
         x = self.classification_layer(pooled_features)
-        x = self.softmax(x)
         return pooled_features, x
 
 def make(model_name, num_classes):
