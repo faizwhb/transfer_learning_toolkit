@@ -6,7 +6,7 @@ import torch
 import config_utils.config_eval as config_eval
 from datasets.transformers import make_transform
 from datasets.csv_dataset import Dataset_from_CSV
-from optimizers.linear_lr import LinearLR
+from torch.utils.tensorboard import SummaryWriter
 import os
 import logging
 
@@ -85,6 +85,9 @@ def main(args):
     experiment_name = os.path.join(config['log']['path'], config['log']['name'])
     if not os.path.isdir(experiment_name):
         os.makedirs(experiment_name)
+
+    # specify summaries directory
+    writer = SummaryWriter(experiment_name)
 
     # TODO - Cleanup this mess to see clearly
     logging.basicConfig(
@@ -174,16 +177,22 @@ def main(args):
     for epoch in range(0, config['nb_epochs']):
         train_loss = train_single_epoch(model=model, loss=criterion, optimizer=optimizer,
                                         data_fetcher=train_dataloader, device=device)
+
         training_acc = validate(model=model, test_loader=train_dataloader, device=device)
         logging.info('Training loss for epoch:' + str(epoch) + ' is: ' + str(train_loss))
         logging.info('Training Accuracy for epoch:' + str(epoch) + ' is: ' + str(training_acc) + '%')
 
+        writer.add_scalar('Loss/train', train_loss, epoch)
+        writer.add_scalar('Accuracy/train', training_acc, epoch)
         if epoch % config['nb_val_epochs'] == 0:
             val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader, device=device)
             accuracy = validate(val_dataloader, model, device)
 
             logging.info('Validation loss at epoch:' + str(epoch) + ' is ' + str(val_loss))
             logging.info('Accurracy for Validation: ' + str(accuracy) + '%')
+
+            writer.add_scalar('Loss/val', train_loss, epoch)
+            writer.add_scalar('Accuracy/val', training_acc, epoch)
 
             if best_accuracy <= accuracy:
                 validation_loss = val_loss
