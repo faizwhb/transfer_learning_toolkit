@@ -1,13 +1,15 @@
 import argparse
-from tools.models import model_getter
-
-import torch
-import config_utils.config_eval as config_eval
-from tools.datasets.transformers import make_transform
-from tools.datasets.csv_dataset import Dataset_from_CSV
 from torch.utils.tensorboard import SummaryWriter
 import os
 import logging
+import torch
+
+# TODO - fix relative imports for the training scripts
+import config_utils.config_eval as config_eval
+from tools.datasets.transformers import make_transform
+from tools.datasets.csv_dataset import Dataset_from_CSV
+from tools.models import model_getter
+
 
 
 def parse_args():
@@ -15,6 +17,7 @@ def parse_args():
     parser.add_argument('--config_name', default='config/train.json')
     args = parser.parse_args()
     return args
+
 
 def my_collate(batch):
     # collate function for skipping corrupted or broken files
@@ -55,6 +58,7 @@ def compute_validation_loss(model, loss, data_fetcher, device):
             logging.info('Validation Loss for minibatch: ' + str(i) + ' is ' + str(loss_per_batch.item())) \
                 if i % 10 == 0 else None
     return loss_per_epoch/len(data_fetcher)
+
 
 def train_single_epoch(model, loss, optimizer, data_fetcher, device):
     loss_per_epoch = 0
