@@ -9,8 +9,8 @@ def write_dataset(data_list, csv_name, label_names):
     with open(csv_name, 'w') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['index', 'image_name', 'class_id', 'class_name'])
-        for each_item in data_list:
-            csv_writer.writerow(each_item + [label_names[each_item[-1]]])
+        for index, each_item in enumerate(data_list):
+            csv_writer.writerow([index] + each_item + [label_names[each_item[-1]]])
 
 
 #  read training image names

@@ -8,29 +8,23 @@ import pandas as pd
 from PIL import Image
 
 class Dataset_from_CSV(Dataset):
-    def __init__(self, root, csv_file, class_subset=None, transform=None):
+    def __init__(self, root, csv_file, transform=None):
         self.transform = transform
-        self.read_data_from_csv(root, csv_file, class_subset)
+        self.read_data_from_csv(root, csv_file)
 
-    def read_data_from_csv(self, root, file_path, class_subset):
+    def read_data_from_csv(self, root, file_path):
         self.im_paths = []
         self.ys = []
         self.I = []
         df = pd.read_csv(file_path)
-        for id, value in enumerate(df['img_file']):
+        for id, value in enumerate(df['image_name']):
             image_name = value
             class_id = df['class_id'][id]
             image_path = os.path.join(root, image_name)
 
-            if class_subset is not None:
-                if class_id in class_subset:
-                    self.im_paths.append(image_path)
-                    self.ys.append(class_id)
-                    self.I.append(id)
-            else:
-                self.im_paths.append(image_path)
-                self.ys.append(class_id)
-                self.I.append(id)
+            self.im_paths.append(image_path)
+            self.ys.append(class_id)
+            self.I.append(id)
 
     def __len__(self):
         return len(self.I)

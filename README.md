@@ -7,11 +7,11 @@
     - [ ] InceptionV3
     
 - Loss Functions
-    - [ ] Categorical Cross Entropy
+    - [x] Categorical Cross Entropy
     - [ ] Categorical Cross Entropy with Label Smoothing and Temperature Scaling
     
 - Optimizers
-    - [ ] Adam
+    - [x] Adam
     - [ ] SWA with CLR
     - [ ] Budget Training
 
