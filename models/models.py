@@ -5,15 +5,25 @@ import torch.nn as nn
 import random
 import logging
 
-def mobilenet_v2(pretrained = True):
-    model = torchvision.models.mobilenet_v2(pretrained = pretrained)
+
+def mobilenet_v2(pretrained=True):
+    # get mobilenet_v2 from torchvision models
+    model = torchvision.models.mobilenet_v2(pretrained=pretrained)
     return model
-def densenet(pretrained = True):
-    model = torchvision.models.densenet161(pretrained = pretrained)
+
+
+def densenet(pretrained=True):
+    # get mobilenet_v2 from torchvision models
+    model = torchvision.models.densenet161(pretrained=pretrained)
+    return model
+
+def resnet(pretrained=True):
+    # get mobilenet_v2 from torchvision models
+    model = torchvision.models.resnet101(pretrained=pretrained)
     return model
 
 class TransferredNetworkD(torch.nn.Module):
-    def __init__(self,pre_trained_model, num_classes):
+    def __init__(self, pre_trained_model, num_classes):
         super(TransferredNetworkD, self).__init__()
         self.pretrained_model = pre_trained_model
 
@@ -23,16 +33,18 @@ class TransferredNetworkD(torch.nn.Module):
 
 
     def forward(self, x):
+        # extract the features from the model
         x = self.pretrained_model.features(x)
         x = F.relu(x, inplace=True)
         pooled_features = F.adaptive_avg_pool2d(x, (1, 1)).view(x.size(0), -1)
         x = self.classification_layer(pooled_features)
         x = self.softmax(x)
+        # to extract the embedding to visualize the tsne on for classes
         return pooled_features, x
 
 
 class TransferredNetworkM(torch.nn.Module):
-    def __init__(self,pre_trained_model, num_classes):
+    def __init__(self, pre_trained_model, num_classes):
         super(TransferredNetworkM, self).__init__()
         self.pretrained_model = pre_trained_model
 
@@ -45,6 +57,19 @@ class TransferredNetworkM(torch.nn.Module):
         x = self.classification_layer(pooled_features)
         x = self.softmax(x)
         return pooled_features, x
+
+class TransferredNetworkR(torch.nn.Module):
+    def __init__(self, pre_trained_model, num_classes):
+        super(TransferredNetworkR, self).__init__()
+        self.pretrained_model = pre_trained_model
+
+        self.pretrained_model.fc = torch.nn.Linear(in_features=pre_trained_model.fc.in_features,
+                                                   out_features=num_classes)
+        self.softmax = nn.LogSoftmax(dim=1)
+    def forward(self, x):
+        x = self.pretrained_model(x)
+        x = self.softmax(x)
+        return x
 
 def make(model_name, num_classes):
 
