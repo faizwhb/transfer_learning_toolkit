@@ -210,7 +210,7 @@ def main(args):
             accuracy, precision, recall = validate(val_dataloader, model, device)
 
             logging.info('Validation loss at epoch:' + str(epoch) + ' is ' + str(val_loss))
-            logging.info('Accurracy for Validation: ' + str(accuracy) + '%')
+            logging.info('Accuracy for Validation: ' + str(accuracy) + '%')
 
             writer.add_scalar('Loss/val', train_loss, epoch)
             writer.add_scalar('Accuracy/val', training_acc, epoch)
