@@ -3,6 +3,8 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 import logging
 import torch
+import numpy as np
+from sklearn.metrics import average_precision_score, recall_score
 
 # TODO - fix relative imports for the training scripts
 import config_utils.config_eval as config_eval
@@ -31,16 +33,28 @@ def validate(test_loader, model, device):
     model.eval()
     correct = 0
     total = 0
+    targets = []
+    predictions = []
     with torch.no_grad():
         for i, (input, target, index) in enumerate(test_loader):
             input = input.to(device, non_blocking=True)
             target = target.to(device, non_blocking=True)
+
+            # accumulate labels to compute evaluation metrics
+            targets += target.squeeze(target.tolist()).tolist()
             # compute output
-            pooled_features, outputs = model(input)
+            _, outputs = model(input)
             _, predicted = torch.max(outputs, dim=1)
+
+            # accumulate labels to compute evaluation metrics
+            predictions += np.squeeze(predicted.tolist()).tolist()
             total += target.size(0)
             correct += (predicted == target).sum().item()
-    return 100*correct/total
+    accuracy = 100*correct/total
+    average_precision = average_precision_score(y_true=targets, y_score=predictions)
+    average_recall = recall_score(y_true=targets, y_score=predictions)
+
+    return accuracy, average_precision, average_recall
 
 
 def compute_validation_loss(model, loss, data_fetcher, device):
@@ -181,21 +195,27 @@ def main(args):
         train_loss = train_single_epoch(model=model, loss=criterion, optimizer=optimizer,
                                         data_fetcher=train_dataloader, device=device)
 
-        training_acc = validate(model=model, test_loader=train_dataloader, device=device)
+        training_acc, training_precision, training_recall = validate(model=model,
+                                                                     test_loader=train_dataloader,
+                                                                     device=device)
         logging.info('Training loss for epoch:' + str(epoch) + ' is: ' + str(train_loss))
         logging.info('Training Accuracy for epoch:' + str(epoch) + ' is: ' + str(training_acc) + '%')
 
         writer.add_scalar('Loss/train', train_loss, epoch)
         writer.add_scalar('Accuracy/train', training_acc, epoch)
+        writer.add_scalar('Precision/train', training_precision)
+        writer.add_scalar('Recall/train', training_recall)
         if epoch % config['nb_val_epochs'] == 0:
             val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader, device=device)
-            accuracy = validate(val_dataloader, model, device)
+            accuracy, precision, recall = validate(val_dataloader, model, device)
 
             logging.info('Validation loss at epoch:' + str(epoch) + ' is ' + str(val_loss))
             logging.info('Accurracy for Validation: ' + str(accuracy) + '%')
 
             writer.add_scalar('Loss/val', train_loss, epoch)
             writer.add_scalar('Accuracy/val', training_acc, epoch)
+            writer.add_scalar('Precision/val', precision)
+            writer.add_scalar('Recall/val', recall)
 
             if best_accuracy <= accuracy:
                 validation_loss = val_loss
