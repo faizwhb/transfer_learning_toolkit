@@ -46,7 +46,7 @@ def validate(test_loader, model, device):
             target = target.to(device, non_blocking=True)
 
             # accumulate labels to compute evaluation metrics
-            targets += target.squeeze(target.tolist()).tolist()
+            targets += np.squeeze(target.tolist()).tolist()
             # compute output
             _, outputs = model(input)
             _, predicted = torch.max(outputs, dim=1)
@@ -56,6 +56,8 @@ def validate(test_loader, model, device):
             total += target.size(0)
             correct += (predicted == target).sum().item()
     accuracy = 100*correct/total
+    # TODO: sklearn average precision score for multilabel settings not supported. Implement it as a function in tools
+
     average_precision = average_precision_score(y_true=targets, y_score=predictions)
     average_recall = recall_score(y_true=targets, y_score=predictions)
 
@@ -97,6 +99,8 @@ def train_single_epoch(model, loss, optimizer, data_fetcher, device):
         optimizer.step()
         logging.info('Training Loss for minibatch: ' + str(i) + ' is ' + str(loss_per_batch.item())) \
             if i % 10 == 0 else None
+        if i%100==0 and i > 1:
+            break
     return loss_per_epoch/len(data_fetcher)
 
 
