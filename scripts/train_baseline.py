@@ -7,6 +7,11 @@ import numpy as np
 from sklearn.metrics import average_precision_score, recall_score
 
 # TODO - fix relative imports for the training scripts
+import os, sys, inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
 import config_utils.config_eval as config_eval
 from tools.datasets.transformers import make_transform
 from tools.datasets.csv_dataset import Dataset_from_CSV
@@ -121,22 +126,18 @@ def main(args):
         ]
     )
 
-    train_transforms = make_transform(**config['transform_parameters'],
-                                      is_train=True)
+    train_transforms = make_transform(**config['transform_parameters'], is_train=True)
 
-    val_tranforms = make_transform(**config['transform_parameters'],
-                                   is_train=False)
+    val_tranforms = make_transform(**config['transform_parameters'], is_train=False)
 
     # define the dataset
-    dataset_selected = config['dataset_selected']
+    dataset_selected = config['dataset_name']
     train_dataset = Dataset_from_CSV(root=config['dataset'][dataset_selected]['root'],
                                      csv_file=config['dataset'][dataset_selected]['train_csv'],
-                                     class_subset=None,
                                      transform=train_transforms)
 
     val_dataset = Dataset_from_CSV(root=config['dataset'][dataset_selected]['root'],
                                      csv_file=config['dataset'][dataset_selected]['val_csv'],
-                                     class_subset=None,
                                      transform=val_tranforms)
 
     # create dataloaders
@@ -180,7 +181,7 @@ def main(args):
         eps=config['optimizer_params']['eps'], amsgrad=True)
 
 
-    logging.info('Dataset selected:' + config['dataset_selected'])
+    logging.info('Dataset selected:' + config['dataset_name'])
     logging.info('Number of classes in training:' + str(train_dataset.nb_classes()))
     logging.info('Number of Images in training:' + str(len(train_dataset)))
     logging.info('Number of classes in validation:' + str(val_dataset.nb_classes()))

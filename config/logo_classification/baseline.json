@@ -1,13 +1,13 @@
 {
-  "dataset_selected": "logo_classification",
+  "dataset_name": "logo_classification",
   "loss_selected": "softmax",
   "model_name": "densenet",
   "resume": false,
   "dataset": {
-    "deep_image_blendings": {
+    "logo_classification": {
       "root": "/media/faiz/data2/classification/logos/images",
-      "train_csv": "/media/faiz/data2/classification/logos/images/annotations/train.csv",
-      "val_csv": "/media/faiz/data2/classification/logos/images/annotations/test.csv"
+      "train_csv": "/media/faiz/data2/classification/logos/annotations/train.csv",
+      "val_csv": "/media/faiz/data2/classification/logos/annotations/test.csv"
     }
   },
   "transform_parameters": {
@@ -25,8 +25,9 @@
     "sz_resize": 224,
     "sz_crop": 224
   },
+  "verbose": true,
   "nb_epochs": 60,
-  "sz_batch": 96,
+  "sz_batch": 32,
   "gpu_id": 0,
   "nb_val_epochs": 1,
   "log": {
