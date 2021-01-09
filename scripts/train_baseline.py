@@ -1,12 +1,11 @@
 import argparse
 from torch.utils.tensorboard import SummaryWriter
-import os
 import logging
 import torch
+import torch.nn as nn
 import numpy as np
-from sklearn.metrics import average_precision_score, recall_score
 
-# TODO - fix relative imports for the training scripts
+
 import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -16,7 +15,7 @@ import config_utils.config_eval as config_eval
 from tools.datasets.transformers import make_transform
 from tools.datasets.csv_dataset import Dataset_from_CSV
 from tools.models import model_getter
-
+from tools.evaluation_metrics.precision_recall_scores import compute_average_precision_score, compute_average_recall
 
 
 def parse_args():
@@ -32,7 +31,7 @@ def my_collate(batch):
     return torch.utils.data.dataloader.default_collate(batch)
 
 
-def validate(test_loader, model, device):
+def evaluate(test_loader, model, device, num_classes):
     # switch to evaluation mode
     model = model.to(device)
     model.eval()
@@ -56,15 +55,15 @@ def validate(test_loader, model, device):
             total += target.size(0)
             correct += (predicted == target).sum().item()
     accuracy = 100*correct/total
-    # TODO: sklearn average precision score for multilabel settings not supported. Implement it as a function in tools
-
-    average_precision = average_precision_score(y_true=targets, y_score=predictions)
-    average_recall = recall_score(y_true=targets, y_score=predictions)
+    average_precision = compute_average_precision_score(ground_truth=targets,
+                                                        predictions=predictions, num_classes=num_classes)
+    average_recall = compute_average_recall(ground_truth=targets, predictions=predictions,
+                                            num_classes=num_classes)
 
     return accuracy, average_precision, average_recall
 
 
-def compute_validation_loss(model, loss, data_fetcher, device):
+def compute_validation_loss(model, loss, data_fetcher, device, epoch, writer):
     loss_per_epoch = 0
     model = model.to(device)
     loss = loss.to(device)
@@ -76,12 +75,15 @@ def compute_validation_loss(model, loss, data_fetcher, device):
             pooled_features, outputs = model(images)
             loss_per_batch = loss(outputs, labels)
             loss_per_epoch += loss_per_batch.item()
-            logging.info('Validation Loss for minibatch: ' + str(i) + ' is ' + str(loss_per_batch.item())) \
+            logging.info('Validation Loss' + ' Epoch ' + str(epoch) +
+                         ' for minibatch: ' + str(i) + '/' + str(len(data_fetcher))
+                         + ' is ' + str(loss_per_batch.item())) \
                 if i % 10 == 0 else None
+            writer.add_scalar('Loss/MiniBatch_Val', loss_per_batch.item(), epoch*i)
     return loss_per_epoch/len(data_fetcher)
 
 
-def train_single_epoch(model, loss, optimizer, data_fetcher, device):
+def train_single_epoch(model, loss, optimizer, data_fetcher, device, epoch, writer):
     loss_per_epoch = 0
     model = model.to(device)
     loss = loss.to(device)
@@ -97,9 +99,13 @@ def train_single_epoch(model, loss, optimizer, data_fetcher, device):
         optimizer.zero_grad()
         loss_per_batch.backward()
         optimizer.step()
-        logging.info('Training Loss for minibatch: ' + str(i) + ' is ' + str(loss_per_batch.item())) \
+        logging.info('Training Loss ' + ' Epoch ' + str(epoch) + ' for minibatch: ' + str(i) + '/' + str(len(data_fetcher)) +
+                     ' is ' + str(loss_per_batch.item())) \
             if i % 10 == 0 else None
-        if i%100==0 and i > 1:
+
+        writer.add_scalar('Loss/MiniBatch_Train', loss_per_batch.item(), epoch * i)
+
+        if i % 100 == 0 and i > 1:
             break
     return loss_per_epoch/len(data_fetcher)
 
@@ -158,10 +164,17 @@ def main(args):
                                                  num_workers=16,
                                                  pin_memory=True,
                                                  drop_last=True, collate_fn=my_collate)
+    num_classes = train_dataset.nb_classes()
 
     # define model
-    device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
-    model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=train_dataset.nb_classes())
+    device = None
+    if config['gpu_id'] > 0:
+        device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
+        model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
+    elif config['gpu_id'] == -1:
+        device = torch.device("cuda:" + str(0) if torch.cuda.is_available() else "cpu")
+        model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
+        nn.DataParallel(model)
 
     # resume by loading previously best model
     if config['resume']:
@@ -184,7 +197,6 @@ def main(args):
         {"params": model.classification_layer.parameters(), "lr": config['optimizer_params']['new_params']}],
         eps=config['optimizer_params']['eps'], amsgrad=True)
 
-
     logging.info('Dataset selected:' + config['dataset_name'])
     logging.info('Number of classes in training:' + str(train_dataset.nb_classes()))
     logging.info('Number of Images in training:' + str(len(train_dataset)))
@@ -196,13 +208,14 @@ def main(args):
     best_accuracy = 0
     best_epoch = 0
 
-    for epoch in range(0, config['nb_epochs']):
+    for epoch in range(1, config['nb_epochs']):
         train_loss = train_single_epoch(model=model, loss=criterion, optimizer=optimizer,
-                                        data_fetcher=train_dataloader, device=device)
+                                        data_fetcher=train_dataloader, device=device,
+                                        epoch=epoch, writer=writer)
 
-        training_acc, training_precision, training_recall = validate(model=model,
+        training_acc, training_precision, training_recall = evaluate(model=model,
                                                                      test_loader=train_dataloader,
-                                                                     device=device)
+                                                                     device=device, num_classes=num_classes)
         logging.info('Training loss for epoch:' + str(epoch) + ' is: ' + str(train_loss))
         logging.info('Training Accuracy for epoch:' + str(epoch) + ' is: ' + str(training_acc) + '%')
 
@@ -211,8 +224,10 @@ def main(args):
         writer.add_scalar('Precision/train', training_precision)
         writer.add_scalar('Recall/train', training_recall)
         if epoch % config['nb_val_epochs'] == 0:
-            val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader, device=device)
-            accuracy, precision, recall = validate(val_dataloader, model, device)
+            val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader,
+                                               device=device, epoch=epoch, writer=writer)
+            accuracy, precision, recall = evaluate(test_loader=val_dataloader, model=model,
+                                                   device=device, num_classes=num_classes)
 
             logging.info('Validation loss at epoch:' + str(epoch) + ' is ' + str(val_loss))
             logging.info('Accuracy for Validation: ' + str(accuracy) + '%')
