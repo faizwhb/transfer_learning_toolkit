@@ -28,7 +28,7 @@
   "verbose": true,
   "nb_epochs": 60,
   "sz_batch": 32,
-  "gpu_id": 0,
+  "gpu_id": -1,
   "nb_val_epochs": 1,
   "log": {
     "path":"logs/classification/",

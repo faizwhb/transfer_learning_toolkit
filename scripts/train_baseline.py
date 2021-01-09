@@ -104,9 +104,6 @@ def train_single_epoch(model, loss, optimizer, data_fetcher, device, epoch, writ
             if i % 10 == 0 else None
 
         writer.add_scalar('Loss/MiniBatch_Train', loss_per_batch.item(), epoch * i)
-
-        if i % 100 == 0 and i > 1:
-            break
     return loss_per_epoch/len(data_fetcher)
 
 
@@ -127,7 +124,7 @@ def main(args):
         level=logging.DEBUG if config['verbose'] else logging.INFO,
         handlers=[
             logging.FileHandler(
-                "{0}/{1}.log".format(
+                "{0}/{1}/{1}.log".format(
                     config['log']['path'],
                     config['log']['name']
                 )
@@ -154,27 +151,22 @@ def main(args):
     train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=config['sz_batch'],
                                                    shuffle=True,
-                                                   num_workers=16,
+                                                   num_workers=8,
                                                    pin_memory=True,
                                                    drop_last=True, collate_fn=my_collate)
 
     val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
                                                  batch_size=config['sz_batch'],
                                                  shuffle=True,
-                                                 num_workers=16,
+                                                 num_workers=8,
                                                  pin_memory=True,
                                                  drop_last=True, collate_fn=my_collate)
     num_classes = train_dataset.nb_classes()
 
-    # define model
-    device = None
-    if config['gpu_id'] > 0:
-        device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
-        model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
-    elif config['gpu_id'] == -1:
-        device = torch.device("cuda:" + str(0) if torch.cuda.is_available() else "cpu")
-        model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
-        nn.DataParallel(model)
+    # define model and add to define devices where applicable
+    model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
+
+    device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
 
     # resume by loading previously best model
     if config['resume']:
