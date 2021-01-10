@@ -165,9 +165,12 @@ def main(args):
     model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
 
     # resume by loading previously best model
+    starting_epoch = 1
     if config['resume']:
         logging.info('Loading Model from the checkpoint:', config['resume_path'])
-        model.load_state_dict(torch.load(config['resume_path']))
+        checkpoint = torch.load(torch.load(config['resume_path']))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        starting_epoch = checkpoint['epoch']
     weights = train_dataset.get_class_distribution()
 
     # define loss function
@@ -205,7 +208,7 @@ def main(args):
     best_accuracy = 0
     best_epoch = 0
 
-    for epoch in range(1, config['nb_epochs']):
+    for epoch in range(starting_epoch, config['nb_epochs']):
         train_loss = train_single_epoch(model=model, loss=criterion, optimizer=optimizer,
                                         data_fetcher=train_dataloader, device=device,
                                         epoch=epoch, writer=writer)
@@ -218,11 +221,11 @@ def main(args):
 
         writer.add_scalar('Loss/train', train_loss, epoch)
         writer.add_scalar('Accuracy/train', training_acc, epoch)
-        writer.add_scalar('Precision/train', training_precision)
-        writer.add_scalar('Recall/train', training_recall)
+        writer.add_scalar('Precision/train', training_precision, epoch)
+        writer.add_scalar('Recall/train', training_recall, epoch)
         if epoch % config['nb_val_epochs'] == 0:
             val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader,
-                                               device=device, epoch=epoch, writer=writer)
+                                               device=device, epoch=epochs, writer=writer)
             val_accuracy, val_precision, val_recall = evaluate(test_loader=val_dataloader, model=model,
                                                    device=device, num_classes=num_classes)
 
@@ -243,8 +246,15 @@ def main(args):
                                            'best_epoch.pth')
                 logging.info('Saving Path for best_model: ' + str(saving_path))
                 logging.info('Best Epoch at: ' + str(epoch))
-                torch.save(model.module.state_dict(), saving_path) \
-                    if multiple_gpu else torch.save(model.state_dict(), saving_path)
+                if multiple_gpu:
+                    torch.save({'epoch': epoch,
+                                'model_state_dict': model.module.state_dict(),
+                                'optimizer_state_dict':optimizer.state_dict()}, saving_path)
+                else:
+                    torch.save({'epoch': epoch,
+                                'model_state_dict': model.state_dict(),
+                                'optimizer_state_dict': optimizer.state_dict()}, saving_path)
+
         logging.info('Best Validation Loss: ' + str(validation_loss))
         logging.info('Best Accuracy: ' + str(best_accuracy))
         logging.info('Best Epoch: ' + str(best_epoch))
