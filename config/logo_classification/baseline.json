@@ -3,6 +3,7 @@
   "loss_selected": "softmax",
   "model_name": "densenet",
   "resume": false,
+  "resume_path": "LOL.pth",
   "dataset": {
     "logo_classification": {
       "root": "/media/faiz/data2/classification/logos/images",
@@ -27,7 +28,7 @@
   },
   "verbose": true,
   "nb_epochs": 60,
-  "sz_batch": 32,
+  "sz_batch": 64,
   "gpu_id": -1,
   "nb_val_epochs": 1,
   "log": {

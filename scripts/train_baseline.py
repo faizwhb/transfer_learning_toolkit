@@ -79,7 +79,6 @@ def compute_validation_loss(model, loss, data_fetcher, device, epoch, writer):
                          ' for minibatch: ' + str(i) + '/' + str(len(data_fetcher))
                          + ' is ' + str(loss_per_batch.item())) \
                 if i % 10 == 0 else None
-            writer.add_scalar('Loss/MiniBatch_Val', loss_per_batch.item(), epoch*i)
     return loss_per_epoch/len(data_fetcher)
 
 
@@ -103,7 +102,6 @@ def train_single_epoch(model, loss, optimizer, data_fetcher, device, epoch, writ
                      ' is ' + str(loss_per_batch.item())) \
             if i % 10 == 0 else None
 
-        writer.add_scalar('Loss/MiniBatch_Train', loss_per_batch.item(), epoch * i)
     return loss_per_epoch/len(data_fetcher)
 
 
@@ -166,8 +164,6 @@ def main(args):
     # define model and add to define devices where applicable
     model = model_getter.get_model_for_dml(name=config['model_name'], num_classes=num_classes)
 
-    device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
-
     # resume by loading previously best model
     if config['resume']:
         logging.info('Loading Model from the checkpoint:', config['resume_path'])
@@ -196,6 +192,15 @@ def main(args):
     logging.info('Number of Images in validation:' + str(len(val_dataset)))
     logging.info("Loss selected:" + str(config['loss_selected']))
 
+    multiple_gpu = False
+    if config['gpu_id']>-1:
+        device = torch.device("cuda:" + str(config['gpu_id']) if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cuda:" + str(0) if torch.cuda.is_available() else "cpu")
+        model = nn.DataParallel(model)
+        multiple_gpu = True
+    model = model.to(device)
+
     validation_loss = 10000
     best_accuracy = 0
     best_epoch = 0
@@ -218,27 +223,28 @@ def main(args):
         if epoch % config['nb_val_epochs'] == 0:
             val_loss = compute_validation_loss(model=model, loss=criterion, data_fetcher=val_dataloader,
                                                device=device, epoch=epoch, writer=writer)
-            accuracy, precision, recall = evaluate(test_loader=val_dataloader, model=model,
+            val_accuracy, val_precision, val_recall = evaluate(test_loader=val_dataloader, model=model,
                                                    device=device, num_classes=num_classes)
 
             logging.info('Validation loss at epoch:' + str(epoch) + ' is ' + str(val_loss))
-            logging.info('Accuracy for Validation: ' + str(accuracy) + '%')
+            logging.info('Accuracy for Validation: ' + str(val_accuracy) + '%')
 
-            writer.add_scalar('Loss/val', train_loss, epoch)
-            writer.add_scalar('Accuracy/val', training_acc, epoch)
-            writer.add_scalar('Precision/val', precision)
-            writer.add_scalar('Recall/val', recall)
+            writer.add_scalar('Loss/val', val_loss, epoch)
+            writer.add_scalar('Accuracy/val', val_accuracy, epoch)
+            writer.add_scalar('Precision/val', val_precision, epoch)
+            writer.add_scalar('Recall/val', val_recall, epoch)
 
-            if best_accuracy <= accuracy:
+            if best_accuracy <= val_accuracy:
                 validation_loss = val_loss
-                best_accuracy = accuracy
+                best_accuracy = val_accuracy
                 best_epoch = epoch
                 saving_path = os.path.join(config['log']['path'],
                                            config['log']['name'],
                                            'best_epoch.pth')
                 logging.info('Saving Path for best_model: ' + str(saving_path))
                 logging.info('Best Epoch at: ' + str(epoch))
-                torch.save(model.state_dict(), saving_path)
+                torch.save(model.module.state_dict(), saving_path) \
+                    if multiple_gpu else torch.save(model.state_dict(), saving_path)
         logging.info('Best Validation Loss: ' + str(validation_loss))
         logging.info('Best Accuracy: ' + str(best_accuracy))
         logging.info('Best Epoch: ' + str(best_epoch))
