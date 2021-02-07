@@ -1,5 +1,6 @@
 # Transfer Learning Toolkit for Large Scale Image Classification
 
+- Add overview of what we are doing or trying to achieve there!
 - Image Classification Architectures:
     - [x] DenseNets
     - [x] Mobilenet - V2
